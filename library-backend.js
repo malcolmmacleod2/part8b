@@ -176,12 +176,27 @@ const resolvers = {
 
       if (!author) {
         author = new Author({ name: args.author })
-        author.save() 
-      }
+
+        try {
+          await author.save()     
+        }
+        catch (error) {
+          throw new UserInputError(error.message, {
+            invalidArgs: args,
+          })
+        }
+      } 
       
       const book = new Book({ ...args })
       book.author = author._id
-      book.save()
+      try {
+        await book.save()
+      }    
+      catch (error) {
+        throw new UserInputError(error.message, {
+          invalidArgs: args,
+        })
+      }
 
       return book
     },
@@ -190,10 +205,19 @@ const resolvers = {
 
       if (found) {
         found.born = args.setBornTo 
-        found.save()
+        try {
+          await found.save()
+        }
+        
+        catch (error) {
+          throw new UserInputError(error.message, {
+            invalidArgs: args,
+          })
+        }
+
         return found
       } else {
-        return null
+        throw new UserInputError("User does not exist")
       }
      }
   }
