@@ -1,5 +1,4 @@
 const { ApolloServer, UserInputError,AuthenticationError, gql } = require('apollo-server')
-const { v1: uuid } = require('uuid')
 const mongoose = require('mongoose')
 
 const Author = require('./models/author')
@@ -11,12 +10,9 @@ const jwt = require('jsonwebtoken')
 const { PubSub } = require('apollo-server')
 const pubsub = new PubSub()
 
-
 const JWT_SECRET = 'NEED_HERE_A_SECRET_KEY'
 
 const MONGODB_URI = 'mongodb+srv://fullstac-user:xZLPqXzg4e3zLXjb@myfullstackopencluster.sqiz4.mongodb.net/Library?retryWrites=true'
-
-
 
 console.log('connecting to', MONGODB_URI)
 
@@ -27,6 +23,8 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true,
   .catch((error) => {
     console.log('error connection to MongoDB:', error.message)
   })
+
+mongoose.set('debug', true);
 
 const typeDefs = gql`
   type Book {
@@ -117,14 +115,21 @@ const resolvers = {
         return b
       });
     },
-    allAuthors: () => Author.find({}).then(result => result),
+    allAuthors: async (root, args) => {
+      console.log("Author find")
+      const authors = await Author.find({})
+
+      return authors
+    },
     me: (root, args, context) => {
       return context.currentUser
     }
   },
   Author: {
-      bookCount: (root) => {
-        return books.filter(b => b.author === root.name).length
+      bookCount: async (root) => {
+        console.log("Book find")
+        const authorBooks = await Book.find( { author: { $in: root.id }})
+        return authorBooks.length
       }
     },
   Mutation: {
@@ -168,8 +173,6 @@ const resolvers = {
           invalidArgs: args,
         })
       }
-
-      
     },
     editAuthor: async(root, args, context) => {
       const currentUser = context.currentUser
