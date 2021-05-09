@@ -94,14 +94,6 @@ const resolvers = {
 
       let foundBooks = await Book.find({}).populate('author')
 
-      /* if (args.author) {
-        const author  = Author.find({ name: args.author }).then( result => {
-          console.log({result})
-        })
-      } else {
-        foundBooks = Book.find({}).populate('author.name').then(result => result);
-      } */
-
       if (args.author) {
         foundBooks = foundBooks.filter(b => b.author.name === args.author);
       }
@@ -116,8 +108,16 @@ const resolvers = {
       });
     },
     allAuthors: async (root, args) => {
-      console.log("Author find")
-      const authors = await Author.find({})
+
+      const authors = await Author.aggregate([{
+        $lookup:
+        {
+          from: "books",
+          localField: "_id",
+          foreignField: "author",
+          as: "book_authors"
+        }
+      }])
 
       return authors
     },
@@ -127,9 +127,7 @@ const resolvers = {
   },
   Author: {
       bookCount: async (root) => {
-        console.log("Book find")
-        const authorBooks = await Book.find( { author: { $in: root.id }})
-        return authorBooks.length
+        return root.book_authors.length
       }
     },
   Mutation: {
